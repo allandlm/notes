@@ -12,7 +12,7 @@ class MainController extends Controller
     public function index(){
         //load user's notes
         $id = session('user.id');
-        $notes = User::find($id)->notes()->get()->toArray();
+        $notes = User::find($id)->notes()->whereNull('deleted_at')->get()->toArray();
 
         //show home view
         return view('home', ['notes'=>$notes]);
@@ -83,13 +83,13 @@ class MainController extends Controller
                 'text_note.required' => 'A nota é obrigatória',
                 'text_note.min' => 'A nota deve conter pelo menos :min caracteres',
                 'text_note.max' => 'A nota deve conter no máximo :max caracteres'
-            ]
+                ]
             );
-        
-        //check if note_id exists
-        if($request->note_id == NULL){
-            return redirect()->route('home');
-        }
+            
+            //check if note_id exists
+            if($request->note_id == NULL){
+                return redirect()->route('home');
+            }
         
         //decrypt note_id
         $id = Operations::decryptId($request->note_id);
@@ -107,7 +107,38 @@ class MainController extends Controller
     }
     
     public function deleteNote($id){
+        //check if id is encrypted
         $id = Operations::decryptId($id);
+        
+        //load note
+        $note = Note::find($id);
+        
+        //show delete note confirmation
+        return view('delete_note', ['note' => $note]);
+    }
+    
+    public function deleteNoteConfirm($id){
+        //check if id is encrypted
+        $id = Operations::decryptId($id);
+
+        //load note
+        $note = Note::find($id);
+
+        //1. hard delete
+        //$note->delete();
+
+        //2. soft delete
+        // $note->deleted_at = date('Y-m-d H:i:s');
+        // $note->save();
+        
+        //3. soft delete (property SoftDeletes in model)
+        $note->delete();
+        
+        //4. soft delete (property SoftDeletes in model)
+        //$note->forceDelete();
+        
+        //redirect to home
+        return redirect()->route('home');
     }
 
 }
